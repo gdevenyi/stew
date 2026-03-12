@@ -195,7 +195,20 @@ func DetectAsset(userOS string, userArch string, releaseAssets []string) (string
 			}
 		}
 		if finalAsset == "" {
-			finalAsset, err = WarningPromptSelect("Could not automatically detect the release asset matching your OS/Arch. Please select it manually:", filteredReleaseAssets)
+			// Determine which assets to show in manual selection
+			var assetsForManualSelection []string
+			if len(detectedFinalAssets) > 1 {
+				// Multiple OS+arch matches, show only those
+				assetsForManualSelection = detectedFinalAssets
+			} else if len(detectedOSAssets) > 0 {
+				// OS matched but no arch match, show OS-matched assets
+				assetsForManualSelection = detectedOSAssets
+			} else {
+				// No matches at all, show checksum-filtered list
+				assetsForManualSelection = filteredReleaseAssets
+			}
+			
+			finalAsset, err = WarningPromptSelect("Could not automatically detect the release asset matching your OS/Arch. Please select it manually:", assetsForManualSelection)
 			if err != nil {
 				return "", err
 			}
