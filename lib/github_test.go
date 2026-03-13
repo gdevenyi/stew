@@ -502,7 +502,7 @@ func TestDetectAsset(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := DetectAsset(tt.args.userOS, tt.args.userArch, tt.args.releaseAssets)
+			got, err := DetectAsset(tt.args.userOS, tt.args.userArch, tt.args.releaseAssets, false)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DetectAsset() error = %v, wantErr %v", err, tt.wantErr)
 				return

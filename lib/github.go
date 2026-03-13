@@ -140,8 +140,19 @@ func filterReleaseAssets(assets []string) []string {
 	return filteredAssets
 }
 
-// DetectAsset will automatically detect a release asset matching your systems OS/arch or prompt you to manually select an asset
-func DetectAsset(userOS string, userArch string, releaseAssets []string) (string, error) {
+// DetectAsset will automatically detect a release asset matching your systems OS/arch or prompt you to manually select an asset.
+// If bypassDetection is true, automatic detection is skipped and the user is shown all available assets (excluding checksums).
+func DetectAsset(userOS string, userArch string, releaseAssets []string, bypassDetection bool) (string, error) {
+	// If bypassDetection is true, skip all detection and show manual selection with all assets
+	if bypassDetection {
+		filteredReleaseAssets := filterReleaseAssets(releaseAssets)
+		finalAsset, err := WarningPromptSelect("Showing all available release assets. Please select one:", filteredReleaseAssets)
+		if err != nil {
+			return "", err
+		}
+		return finalAsset, nil
+	}
+	
 	var detectedOSAssets []string
 	var reOS *regexp.Regexp
 	var err error
