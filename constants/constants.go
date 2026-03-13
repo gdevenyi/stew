@@ -37,6 +37,12 @@ var RegexAmd64 = `(?i)(x86_64|amd64|x64|amd64e)`
 // Regex386 is a regular express for 386 architectures
 var Regex386 = `(?i)(i?386|x86_32|amd32|x32)`
 
+// RegexLinuxGnu is a regex for Linux gnu libc binaries
+var RegexLinuxGnu = `(?i)gnu`
+
+// RegexLinuxMusl is a regex for Linux musl libc binaries
+var RegexLinuxMusl = `(?i)musl`
+
 // RegexGithub is a regular express for valid GitHub repos
 var RegexGithub = `(?i)^[A-Za-z0-9\-]+\/[A-Za-z0-9\_\.\-]+(@.+)?$`
 

@@ -204,6 +204,12 @@ func DetectAsset(userOS string, userArch string, releaseAssets []string, bypassD
 			if err != nil {
 				return "", err
 			}
+		} else if userOS == "linux" && len(detectedFinalAssets) > 1 {
+			// Apply gnu/musl preference for Linux when multiple assets match
+			finalAsset, err = linuxGnuMuslPreference(detectedFinalAssets)
+			if err != nil {
+				return "", err
+			}
 		}
 		if finalAsset == "" {
 			// Determine which assets to show in manual selection
@@ -249,6 +255,62 @@ func darwinARMFallback(darwinAssets []string) (string, error) {
 	}
 
 	return altAssets[0], nil
+}
+
+// linuxGnuMuslPreference applies gnu/musl preference for Linux assets
+// Returns the preferred asset or empty string if preference cannot be determined
+func linuxGnuMuslPreference(linuxAssets []string) (string, error) {
+	reGnu, err := regexp.Compile(constants.RegexLinuxGnu)
+	if err != nil {
+		return "", err
+	}
+
+	reMusl, err := regexp.Compile(constants.RegexLinuxMusl)
+	if err != nil {
+		return "", err
+	}
+
+	// Separate assets by type
+	var gnuAssets []string
+	var muslAssets []string
+	var unspecifiedAssets []string
+
+	for _, asset := range linuxAssets {
+		if reMusl.MatchString(asset) {
+			muslAssets = append(muslAssets, asset)
+		} else if reGnu.MatchString(asset) {
+			gnuAssets = append(gnuAssets, asset)
+		} else {
+			unspecifiedAssets = append(unspecifiedAssets, asset)
+		}
+	}
+
+	// Apply preference: gnu > unspecified (assumed gnu) > musl
+	if len(gnuAssets) == 1 {
+		return gnuAssets[0], nil
+	}
+	if len(gnuAssets) > 1 {
+		// Multiple gnu assets, can't auto-select, return empty for manual selection
+		return "", nil
+	}
+	if len(unspecifiedAssets) == 1 {
+		// Unspecified assets are assumed to be gnu, prefer over musl
+		return unspecifiedAssets[0], nil
+	}
+	if len(unspecifiedAssets) > 1 {
+		// Multiple unspecified assets, can't auto-select
+		return "", nil
+	}
+	if len(muslAssets) == 1 {
+		return muslAssets[0], nil
+	}
+	if len(muslAssets) > 1 {
+		// Multiple musl assets, can't auto-select
+		return "", nil
+	}
+
+	// Zero assets - trigger manual selection
+	return "", nil
 }
 
 // GithubSearch contains information about the GitHub search including the GitHub search results
