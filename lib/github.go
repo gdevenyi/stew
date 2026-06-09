@@ -129,10 +129,11 @@ func assetsFound(releaseAssets []string, releaseTag string) error {
 
 func filterReleaseAssets(assets []string) []string {
 	var filteredAssets []string
-	re := regexp.MustCompile(constants.RegexChecksum)
+	reChecksum := regexp.MustCompile(constants.RegexChecksum)
+	rePackageInstaller := regexp.MustCompile(constants.RegexPackageInstaller)
 
 	for _, asset := range assets {
-		if re.MatchString(asset) {
+		if reChecksum.MatchString(asset) || rePackageInstaller.MatchString(asset) {
 			continue
 		}
 		filteredAssets = append(filteredAssets, asset)
@@ -140,12 +141,24 @@ func filterReleaseAssets(assets []string) []string {
 	return filteredAssets
 }
 
+func FilterReleaseAssets(assets []string, releaseTag string) ([]string, error) {
+	filteredAssets := filterReleaseAssets(assets)
+	if len(filteredAssets) == 0 {
+		return nil, PortableAssetsNotFoundError{Tag: releaseTag}
+	}
+	return filteredAssets, nil
+}
+
 // DetectAsset will automatically detect a release asset matching your systems OS/arch or prompt you to manually select an asset.
-// If bypassDetection is true, automatic detection is skipped and the user is shown all available assets (excluding checksums).
+// If bypassDetection is true, automatic detection is skipped and the user is shown all available assets (excluding checksums and installers).
 func DetectAsset(userOS string, userArch string, releaseAssets []string, bypassDetection bool) (string, error) {
+	filteredReleaseAssets, err := FilterReleaseAssets(releaseAssets, "")
+	if err != nil {
+		return "", err
+	}
+
 	// If bypassDetection is true, skip all detection and show manual selection with all assets
 	if bypassDetection {
-		filteredReleaseAssets := filterReleaseAssets(releaseAssets)
 		finalAsset, err := WarningPromptSelect("Showing all available release assets. Please select one:", filteredReleaseAssets)
 		if err != nil {
 			return "", err
@@ -155,7 +168,6 @@ func DetectAsset(userOS string, userArch string, releaseAssets []string, bypassD
 	
 	var detectedOSAssets []string
 	var reOS *regexp.Regexp
-	var err error
 	switch userOS {
 	case "darwin":
 		reOS, err = regexp.Compile(constants.RegexDarwin)
@@ -168,7 +180,6 @@ func DetectAsset(userOS string, userArch string, releaseAssets []string, bypassD
 		return "", err
 	}
 
-	filteredReleaseAssets := filterReleaseAssets(releaseAssets)
 	for _, asset := range filteredReleaseAssets {
 		if reOS.MatchString(asset) {
 			detectedOSAssets = append(detectedOSAssets, asset)

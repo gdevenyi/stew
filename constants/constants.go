@@ -55,6 +55,9 @@ var RegexURL = `^(http|ftp|https):\/\/([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:\/
 // RegexChecksum is a regular expression for matching checksum files
 var RegexChecksum = `\.(sha(256|512)(sum)?)$`
 
+// RegexPackageInstaller is a regular expression for matching package-manager and installer assets
+var RegexPackageInstaller = `(?i)(\.deb|\.rpm|\.apk|\.msi|\.pkg|\.dmg|\.pkg\.tar\.(gz|xz|zst))$`
+
 // StewOwner is the username of the stew github repo owner
 var StewOwner = `marwanhawari`
 
