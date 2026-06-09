@@ -114,7 +114,11 @@ func installOne(pkg stew.PackageData, userOS, userArch string, systemInfo stew.S
 
 		assetIndex, assetFound := stew.Contains(releaseAssets, asset)
 		if !assetFound {
-			asset, err = stew.WarningPromptSelect(fmt.Sprintf("Could not find the asset %v - please select an asset:", constants.YellowColor(asset)), releaseAssets)
+			filteredReleaseAssets, err := stew.FilterReleaseAssets(releaseAssets, tag)
+			if err != nil {
+				return err
+			}
+			asset, err = stew.WarningPromptSelect(fmt.Sprintf("Could not find the asset %v - please select an asset:", constants.YellowColor(asset)), filteredReleaseAssets)
 			if err != nil {
 				return err
 			}

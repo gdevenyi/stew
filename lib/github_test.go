@@ -417,6 +417,75 @@ func Test_assetsFound(t *testing.T) {
 	}
 }
 
+func Test_filterReleaseAssets(t *testing.T) {
+	tests := []struct {
+		name   string
+		assets []string
+		want   []string
+	}{
+		{
+			name: "filters checksums and installer assets",
+			assets: []string{
+				"program-linux-amd64.tar.gz",
+				"program-linux-amd64.deb",
+				"program-linux-amd64.rpm",
+				"program-linux-amd64.apk",
+				"program-macos.pkg",
+				"program-macos.dmg",
+				"program.pkg.tar.zst",
+				"program.exe",
+				"program.sha256",
+			},
+			want: []string{"program-linux-amd64.tar.gz", "program.exe"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := filterReleaseAssets(tt.assets)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("filterReleaseAssets() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFilterReleaseAssets(t *testing.T) {
+	tests := []struct {
+		name       string
+		assets      []string
+		releaseTag string
+		want       []string
+		wantErr    bool
+	}{
+		{
+			name:       "returns filtered assets",
+			assets:      []string{"program-linux-amd64.tar.gz", "program-linux-amd64.deb"},
+			releaseTag: "v1.0.0",
+			want:       []string{"program-linux-amd64.tar.gz"},
+			wantErr:    false,
+		},
+		{
+			name:       "errors when only installers remain",
+			assets:      []string{"program-linux-amd64.deb", "program-linux-amd64.rpm"},
+			releaseTag: "v1.0.0",
+			want:       nil,
+			wantErr:    true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := FilterReleaseAssets(tt.assets, tt.releaseTag)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("FilterReleaseAssets() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("FilterReleaseAssets() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestDetectAsset(t *testing.T) {
 	type args struct {
 		userOS        string
@@ -536,6 +605,33 @@ func TestDetectAsset(t *testing.T) {
 			},
 			want:    "program-v1.0.0-linux-amd64.tar.gz",
 			wantErr: false,
+		},
+		{
+			name: "linux-ignores-installer-assets",
+			args: args{
+				userOS:   "linux",
+				userArch: "amd64",
+				releaseAssets: []string{
+					"program-v1.0.0-linux-amd64.deb",
+					"program-v1.0.0-linux-amd64.rpm",
+					"program-v1.0.0-linux-amd64.tar.gz",
+				},
+			},
+			want:    "program-v1.0.0-linux-amd64.tar.gz",
+			wantErr: false,
+		},
+		{
+			name: "errors when only installer assets exist",
+			args: args{
+				userOS:   "linux",
+				userArch: "amd64",
+				releaseAssets: []string{
+					"program-v1.0.0-linux-amd64.deb",
+					"program-v1.0.0-linux-amd64.rpm",
+				},
+			},
+			want:    "",
+			wantErr: true,
 		},
 		{
 			name: "linux-multiple-gnu-assets-triggers-manual",
