@@ -21,7 +21,7 @@ func main() {
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
 						Name:  "show-all-assets",
-						Usage: "Show all available assets instead of auto-detecting based on OS/Arch",
+						Usage: "Choose from all portable assets (checksums and package installers are hidden) instead of auto-detecting based on OS/Arch",
 					},
 				},
 				Action: func(c *cli.Context) error {
@@ -36,7 +36,7 @@ func main() {
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
 						Name:  "show-all-assets",
-						Usage: "Show all available assets instead of auto-detecting based on OS/Arch",
+						Usage: "Choose from all portable assets (checksums and package installers are hidden) instead of auto-detecting based on OS/Arch",
 					},
 				},
 				Action: func(c *cli.Context) error {
@@ -64,7 +64,7 @@ func main() {
 					},
 					&cli.BoolFlag{
 						Name:  "show-all-assets",
-						Usage: "Show all available assets instead of auto-detecting based on OS/Arch (not applicable with --all)",
+						Usage: "Choose from all portable assets (checksums and package installers are hidden) instead of auto-detecting based on OS/Arch. Cannot be used with --all",
 					},
 				},
 				Action: func(c *cli.Context) error {

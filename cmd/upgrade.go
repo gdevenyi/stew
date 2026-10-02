@@ -17,6 +17,8 @@ func Upgrade(upgradeAllCliFlag bool, showAllAssets bool, binaryName string) {
 
 	if upgradeAllCliFlag && binaryName != "" {
 		stew.CatchAndExit(stew.CLIFlagAndInputError{})
+	} else if upgradeAllCliFlag && showAllAssets {
+		stew.CatchAndExit(stew.ShowAllAssetsWithAllFlagError{})
 	} else if !upgradeAllCliFlag {
 		err := stew.ValidateCLIInput(binaryName)
 		stew.CatchAndExit(err)
@@ -103,7 +105,7 @@ func upgradeOne(binaryName, userOS, userArch string, lockFile stew.LockFile, sys
 		return err
 	}
 
-	asset, err := stew.DetectAsset(userOS, userArch, releaseAssets, showAllAssets)
+	asset, err := stew.DetectAsset(userOS, userArch, releaseAssets, tag, showAllAssets)
 	if err != nil {
 		return err
 	}

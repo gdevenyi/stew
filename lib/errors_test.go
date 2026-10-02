@@ -291,6 +291,26 @@ func TestCLIFlagAndInputError_Error(t *testing.T) {
 	}
 }
 
+func TestShowAllAssetsWithAllFlagError_Error(t *testing.T) {
+	tests := []struct {
+		name string
+		want string
+	}{
+		{
+			name: "test1",
+			want: fmt.Sprintf("%v Cannot use the --show-all-assets flag with the --all flag", constants.RedColor("Error:")),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := ShowAllAssetsWithAllFlagError{}
+			if got := e.Error(); got != tt.want {
+				t.Errorf("ShowAllAssetsWithAllFlagError.Error() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestAbortBinaryOverwriteError_Error(t *testing.T) {
 	type fields struct {
 		Binary string

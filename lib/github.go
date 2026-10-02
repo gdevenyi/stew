@@ -127,10 +127,15 @@ func assetsFound(releaseAssets []string, releaseTag string) error {
 	return nil
 }
 
+var (
+	reChecksum         = regexp.MustCompile(constants.RegexChecksum)
+	rePackageInstaller = regexp.MustCompile(constants.RegexPackageInstaller)
+	reLinuxGnu         = regexp.MustCompile(constants.RegexLinuxGnu)
+	reLinuxMusl        = regexp.MustCompile(constants.RegexLinuxMusl)
+)
+
 func filterReleaseAssets(assets []string) []string {
 	var filteredAssets []string
-	reChecksum := regexp.MustCompile(constants.RegexChecksum)
-	rePackageInstaller := regexp.MustCompile(constants.RegexPackageInstaller)
 
 	for _, asset := range assets {
 		if reChecksum.MatchString(asset) || rePackageInstaller.MatchString(asset) {
@@ -151,8 +156,9 @@ func FilterReleaseAssets(assets []string, releaseTag string) ([]string, error) {
 
 // DetectAsset will automatically detect a release asset matching your systems OS/arch or prompt you to manually select an asset.
 // If bypassDetection is true, automatic detection is skipped and the user is shown all available assets (excluding checksums and installers).
-func DetectAsset(userOS string, userArch string, releaseAssets []string, bypassDetection bool) (string, error) {
-	filteredReleaseAssets, err := FilterReleaseAssets(releaseAssets, "")
+// The releaseTag is only used to give more context in error messages.
+func DetectAsset(userOS string, userArch string, releaseAssets []string, releaseTag string, bypassDetection bool) (string, error) {
+	filteredReleaseAssets, err := FilterReleaseAssets(releaseAssets, releaseTag)
 	if err != nil {
 		return "", err
 	}
@@ -165,7 +171,7 @@ func DetectAsset(userOS string, userArch string, releaseAssets []string, bypassD
 		}
 		return finalAsset, nil
 	}
-	
+
 	var detectedOSAssets []string
 	var reOS *regexp.Regexp
 	switch userOS {
@@ -217,10 +223,7 @@ func DetectAsset(userOS string, userArch string, releaseAssets []string, bypassD
 			}
 		} else if userOS == "linux" && len(detectedFinalAssets) > 1 {
 			// Apply gnu/musl preference for Linux when multiple assets match
-			finalAsset, err = linuxGnuMuslPreference(detectedFinalAssets)
-			if err != nil {
-				return "", err
-			}
+			finalAsset = linuxGnuMuslPreference(detectedFinalAssets)
 		}
 		if finalAsset == "" {
 			// Determine which assets to show in manual selection
@@ -235,7 +238,7 @@ func DetectAsset(userOS string, userArch string, releaseAssets []string, bypassD
 				// No matches at all, show checksum-filtered list
 				assetsForManualSelection = filteredReleaseAssets
 			}
-			
+
 			finalAsset, err = WarningPromptSelect("Could not automatically detect the release asset matching your OS/Arch. Please select it manually:", assetsForManualSelection)
 			if err != nil {
 				return "", err
@@ -270,58 +273,34 @@ func darwinARMFallback(darwinAssets []string) (string, error) {
 
 // linuxGnuMuslPreference applies gnu/musl preference for Linux assets
 // Returns the preferred asset or empty string if preference cannot be determined
-func linuxGnuMuslPreference(linuxAssets []string) (string, error) {
-	reGnu, err := regexp.Compile(constants.RegexLinuxGnu)
-	if err != nil {
-		return "", err
-	}
-
-	reMusl, err := regexp.Compile(constants.RegexLinuxMusl)
-	if err != nil {
-		return "", err
-	}
-
+func linuxGnuMuslPreference(linuxAssets []string) string {
 	// Separate assets by type
 	var gnuAssets []string
 	var muslAssets []string
 	var unspecifiedAssets []string
 
 	for _, asset := range linuxAssets {
-		if reMusl.MatchString(asset) {
+		if reLinuxMusl.MatchString(asset) {
 			muslAssets = append(muslAssets, asset)
-		} else if reGnu.MatchString(asset) {
+		} else if reLinuxGnu.MatchString(asset) {
 			gnuAssets = append(gnuAssets, asset)
 		} else {
 			unspecifiedAssets = append(unspecifiedAssets, asset)
 		}
 	}
 
-	// Apply preference: gnu > unspecified (assumed gnu) > musl
-	if len(gnuAssets) == 1 {
-		return gnuAssets[0], nil
-	}
-	if len(gnuAssets) > 1 {
-		// Multiple gnu assets, can't auto-select, return empty for manual selection
-		return "", nil
-	}
-	if len(unspecifiedAssets) == 1 {
-		// Unspecified assets are assumed to be gnu, prefer over musl
-		return unspecifiedAssets[0], nil
-	}
-	if len(unspecifiedAssets) > 1 {
-		// Multiple unspecified assets, can't auto-select
-		return "", nil
-	}
-	if len(muslAssets) == 1 {
-		return muslAssets[0], nil
-	}
-	if len(muslAssets) > 1 {
-		// Multiple musl assets, can't auto-select
-		return "", nil
+	// Apply preference: gnu > unspecified (assumed gnu) > musl.
+	// If the preferred group does not contain exactly one asset, return empty for manual selection.
+	for _, group := range [][]string{gnuAssets, unspecifiedAssets, muslAssets} {
+		if len(group) == 1 {
+			return group[0]
+		}
+		if len(group) > 1 {
+			return ""
+		}
 	}
 
-	// Zero assets - trigger manual selection
-	return "", nil
+	return ""
 }
 
 // GithubSearch contains information about the GitHub search including the GitHub search results

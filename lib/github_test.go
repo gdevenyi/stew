@@ -452,21 +452,21 @@ func Test_filterReleaseAssets(t *testing.T) {
 func TestFilterReleaseAssets(t *testing.T) {
 	tests := []struct {
 		name       string
-		assets      []string
+		assets     []string
 		releaseTag string
 		want       []string
 		wantErr    bool
 	}{
 		{
 			name:       "returns filtered assets",
-			assets:      []string{"program-linux-amd64.tar.gz", "program-linux-amd64.deb"},
+			assets:     []string{"program-linux-amd64.tar.gz", "program-linux-amd64.deb"},
 			releaseTag: "v1.0.0",
 			want:       []string{"program-linux-amd64.tar.gz"},
 			wantErr:    false,
 		},
 		{
 			name:       "errors when only installers remain",
-			assets:      []string{"program-linux-amd64.deb", "program-linux-amd64.rpm"},
+			assets:     []string{"program-linux-amd64.deb", "program-linux-amd64.rpm"},
 			releaseTag: "v1.0.0",
 			want:       nil,
 			wantErr:    true,
@@ -571,8 +571,8 @@ func TestDetectAsset(t *testing.T) {
 		{
 			name: "linux-multiple-assets-prefers-gnu",
 			args: args{
-				userOS:        "linux",
-				userArch:      "amd64",
+				userOS:   "linux",
+				userArch: "amd64",
 				releaseAssets: []string{
 					"program-v1.0.0-linux-amd64-gnu.tar.gz",
 					"program-v1.0.0-linux-amd64-musl.tar.gz",
@@ -584,8 +584,8 @@ func TestDetectAsset(t *testing.T) {
 		{
 			name: "linux-multiple-assets-fallback-unspecified-over-musl",
 			args: args{
-				userOS:        "linux",
-				userArch:      "amd64",
+				userOS:   "linux",
+				userArch: "amd64",
 				releaseAssets: []string{
 					"program-v1.0.0-linux-amd64-musl.tar.gz",
 					"program-v1.0.0-linux-amd64.tar.gz",
@@ -597,8 +597,8 @@ func TestDetectAsset(t *testing.T) {
 		{
 			name: "linux-multiple-assets-fallback-unspecified",
 			args: args{
-				userOS:        "linux",
-				userArch:      "amd64",
+				userOS:   "linux",
+				userArch: "amd64",
 				releaseAssets: []string{
 					"program-v1.0.0-linux-amd64.tar.gz",
 				},
@@ -636,8 +636,8 @@ func TestDetectAsset(t *testing.T) {
 		{
 			name: "linux-multiple-gnu-assets-triggers-manual",
 			args: args{
-				userOS:        "linux",
-				userArch:      "amd64",
+				userOS:   "linux",
+				userArch: "amd64",
 				releaseAssets: []string{
 					"program-v1.0.0-linux-amd64-gnu.tar.gz",
 					"program-v1.0.0-linux-amd64-gnu-static.tar.gz",
@@ -649,7 +649,7 @@ func TestDetectAsset(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := DetectAsset(tt.args.userOS, tt.args.userArch, tt.args.releaseAssets, false)
+			got, err := DetectAsset(tt.args.userOS, tt.args.userArch, tt.args.releaseAssets, "", false)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DetectAsset() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -707,18 +707,16 @@ func Test_linuxGnuMuslPreference(t *testing.T) {
 		linuxAssets []string
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
+		name string
+		args args
+		want string
 	}{
 		{
 			name: "single gnu asset",
 			args: args{
 				linuxAssets: []string{"program-linux-amd64-gnu.tar.gz"},
 			},
-			want:    "program-linux-amd64-gnu.tar.gz",
-			wantErr: false,
+			want: "program-linux-amd64-gnu.tar.gz",
 		},
 		{
 			name: "prefers gnu over musl",
@@ -728,8 +726,7 @@ func Test_linuxGnuMuslPreference(t *testing.T) {
 					"program-linux-amd64-musl.tar.gz",
 				},
 			},
-			want:    "program-linux-amd64-gnu.tar.gz",
-			wantErr: false,
+			want: "program-linux-amd64-gnu.tar.gz",
 		},
 		{
 			name: "prefers unspecified over musl",
@@ -739,16 +736,14 @@ func Test_linuxGnuMuslPreference(t *testing.T) {
 					"program-linux-amd64.tar.gz",
 				},
 			},
-			want:    "program-linux-amd64.tar.gz",
-			wantErr: false,
+			want: "program-linux-amd64.tar.gz",
 		},
 		{
 			name: "unspecified when no gnu or musl",
 			args: args{
 				linuxAssets: []string{"program-linux-amd64.tar.gz"},
 			},
-			want:    "program-linux-amd64.tar.gz",
-			wantErr: false,
+			want: "program-linux-amd64.tar.gz",
 		},
 		{
 			name: "empty when multiple gnu",
@@ -758,8 +753,7 @@ func Test_linuxGnuMuslPreference(t *testing.T) {
 					"program-linux-amd64-gnu-static.tar.gz",
 				},
 			},
-			want:    "",
-			wantErr: false,
+			want: "",
 		},
 		{
 			name: "empty when multiple musl",
@@ -769,25 +763,39 @@ func Test_linuxGnuMuslPreference(t *testing.T) {
 					"program-linux-amd64-musl-static.tar.gz",
 				},
 			},
-			want:    "",
-			wantErr: false,
+			want: "",
+		},
+		{
+			name: "gnu triple with abi suffix",
+			args: args{
+				linuxAssets: []string{
+					"program-arm-unknown-linux-gnueabihf.tar.gz",
+					"program-arm-unknown-linux-musleabi.tar.gz",
+				},
+			},
+			want: "program-arm-unknown-linux-gnueabihf.tar.gz",
+		},
+		{
+			name: "gnu and musl inside another word are ignored",
+			args: args{
+				linuxAssets: []string{
+					"magnum-linux-amd64-musl.tar.gz",
+					"magnum-linux-amd64.tar.gz",
+				},
+			},
+			want: "magnum-linux-amd64.tar.gz",
 		},
 		{
 			name: "empty when zero assets",
 			args: args{
 				linuxAssets: []string{},
 			},
-			want:    "",
-			wantErr: false,
+			want: "",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := linuxGnuMuslPreference(tt.args.linuxAssets)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("linuxGnuMuslPreference() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
+			got := linuxGnuMuslPreference(tt.args.linuxAssets)
 			if got != tt.want {
 				t.Errorf("linuxGnuMuslPreference() = %v, want %v", got, tt.want)
 			}
