@@ -41,7 +41,7 @@ var RegexChecksum = `\.(sha(256|512)(sum)?)$`
 var RegexMetadata = `(?i)(\.(sha[0-9]*(sum)?|md5|sig|asc|minisig|pem|crt|pub|proof|sbom|json|jsonl|attestation|bundle|zsync|bsdiff|txt|md|whl|ts|[1-9])$|checksum|(sha|md5|b3)[0-9-]*sums|(^|[-_.])(source|src)\.(tar|tgz|zip))`
 
 // RegexUnsupportedFormat is a regular expression for matching archive formats that stew cannot extract
-var RegexUnsupportedFormat = `(?i)\.(7z|zst|tzst|lz|lzma|cab)$`
+var RegexUnsupportedFormat = `(?i)\.(7z|lz|lzma|cab)$`
 
 // RegexPackageInstaller is a regular expression for matching package-manager and installer assets
 var RegexPackageInstaller = `(?i)(\.deb|\.rpm|\.apk|\.msi|\.pkg|\.dmg|\.pkg\.tar\.(gz|xz|zst))$`

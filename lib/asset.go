@@ -50,28 +50,30 @@ var libcPatterns = []assetPattern{
 	{libcMsvc, regexp.MustCompile(`(^|[^a-z])msvc`), "-"},
 }
 
+// formatRankBinary is the rank of a binary that is not in an archive and is not compressed
+const formatRankBinary = 0
+
 // assetFormats gives the extensions that stew can install in the order of preference.
-// A binary that is not in an archive is preferred, because the full download is the binary.
-// Each archive extension has a different rank, thus a release with the same archive in two formats has one best asset.
+// A binary that is not in an archive is first. It is the largest download, but it is always one complete program.
+// An archive can contain a program that needs the other files in the archive.
+// The compressed formats are in the order from the smallest typical download size to the largest: xz, zstd, brotli, bzip2, gzip, zip, lz4, snappy, no compression.
+// Each extension has a different rank, thus a release with the same build in two formats has one best asset.
+// A longer extension must be before the shorter extension that it ends with.
 var assetFormats = []struct {
 	extension string
 	rank      int
 }{
+	{".tar.xz", 1}, {".txz", 2}, {".xz", 3},
+	{".tar.zst", 4}, {".tzst", 5}, {".zst", 6},
+	{".tar.br", 7}, {".tbr", 8}, {".br", 9},
+	{".tar.bz2", 10}, {".tbz2", 11}, {".tbz", 12}, {".bz2", 13},
+	{".tar.gz", 14}, {".tgz", 15}, {".gz", 16},
+	{".zip", 17}, {".rar", 18},
+	{".tar.lz4", 19}, {".tlz4", 20}, {".lz4", 21},
+	{".tar.sz", 22}, {".tsz", 23}, {".sz", 24},
+	{".tar", 25},
 	{".exe", formatRankBinary}, {".appimage", formatRankBinary}, {".bin", formatRankBinary},
-	{".tar.gz", 2}, {".tgz", 3},
-	{".tar.xz", 4}, {".txz", 5},
-	{".tar.bz2", 6}, {".tbz2", 7}, {".tbz", 8},
-	{".zip", formatRankZip},
-	{".tar.lz4", 10}, {".tar.sz", 11}, {".tar", 12}, {".rar", 13},
-	{".gz", 14}, {".xz", 15}, {".bz2", 16}, {".lz4", 17}, {".sz", 18},
 }
-
-const (
-	formatRankBinary = 0
-	// formatRankWindowsZip is the rank of a zip archive on Windows, where it is the usual archive format
-	formatRankWindowsZip = 1
-	formatRankZip        = 9
-)
 
 var (
 	reMetadata          = regexp.MustCompile(constants.RegexMetadata)
@@ -119,7 +121,7 @@ func isKnownClass(class string, patterns []assetPattern) bool {
 
 // parseAsset reads the OS, the arch, the libc, and the format from the name of a release asset
 func parseAsset(asset, userOS, userArch string) assetInfo {
-	info := assetInfo{name: asset}
+	info := assetInfo{name: asset, formatRank: formatRankBinary}
 	name := strings.ToLower(asset)
 
 	for _, format := range assetFormats {
@@ -194,10 +196,6 @@ func (info assetInfo) rank(userOS, repo string) assetRank {
 	repoName := reNotAlphanumeric.ReplaceAllString(strings.ToLower(repo), "")
 	if repoName != "" && strings.Join(info.words, "") == repoName {
 		rank.repoName = 0
-	}
-
-	if userOS == "windows" && info.formatRank == formatRankZip {
-		rank.format = formatRankWindowsZip
 	}
 
 	return rank
