@@ -140,15 +140,13 @@ func assetsFound(releaseAssets []string, releaseTag string) error {
 var (
 	reChecksum         = regexp.MustCompile(constants.RegexChecksum)
 	rePackageInstaller = regexp.MustCompile(constants.RegexPackageInstaller)
-	reLinuxGnu         = regexp.MustCompile(constants.RegexLinuxGnu)
-	reLinuxMusl        = regexp.MustCompile(constants.RegexLinuxMusl)
 )
 
 func filterReleaseAssets(assets []string) []string {
 	var filteredAssets []string
 
 	for _, asset := range assets {
-		if reChecksum.MatchString(asset) || rePackageInstaller.MatchString(asset) {
+		if reChecksum.MatchString(asset) || rePackageInstaller.MatchString(asset) || reMetadata.MatchString(asset) || reUnsupportedFormat.MatchString(asset) {
 			continue
 		}
 		filteredAssets = append(filteredAssets, asset)
@@ -166,8 +164,8 @@ func FilterReleaseAssets(assets []string, releaseTag string) ([]string, error) {
 
 // DetectAsset will automatically detect a release asset matching your systems OS/arch or prompt you to manually select an asset.
 // If bypassDetection is true, automatic detection is skipped and the user is shown all available assets (excluding checksums and installers).
-// The releaseTag is only used to give more context in error messages.
-func DetectAsset(userOS string, userArch string, releaseAssets []string, releaseTag string, bypassDetection bool) (string, error) {
+// The releaseTag is only used to give more context in error messages. The repo is used to prefer the asset of the main program.
+func DetectAsset(userOS string, userArch string, releaseAssets []string, releaseTag string, repo string, bypassDetection bool) (string, error) {
 	filteredReleaseAssets, err := FilterReleaseAssets(releaseAssets, releaseTag)
 	if err != nil {
 		return "", err
@@ -175,142 +173,15 @@ func DetectAsset(userOS string, userArch string, releaseAssets []string, release
 
 	// If bypassDetection is true, skip all detection and show manual selection with all assets
 	if bypassDetection {
-		finalAsset, err := WarningPromptSelect("Showing all available release assets. Please select one:", filteredReleaseAssets)
-		if err != nil {
-			return "", err
-		}
-		return finalAsset, nil
+		return WarningPromptSelect("Showing all available release assets. Please select one:", filteredReleaseAssets)
 	}
 
-	var detectedOSAssets []string
-	var reOS *regexp.Regexp
-	switch userOS {
-	case "darwin":
-		reOS, err = regexp.Compile(constants.RegexDarwin)
-	case "windows":
-		reOS, err = regexp.Compile(constants.RegexWindows)
-	default:
-		reOS, err = regexp.Compile(`(?i)` + userOS)
-	}
-	if err != nil {
-		return "", err
+	bestAssets, assetsForManualSelection := rankAssets(userOS, userArch, repo, filteredReleaseAssets)
+	if len(bestAssets) == 1 {
+		return bestAssets[0], nil
 	}
 
-	for _, asset := range filteredReleaseAssets {
-		if reOS.MatchString(asset) {
-			detectedOSAssets = append(detectedOSAssets, asset)
-		}
-	}
-
-	var detectedFinalAssets []string
-	var reArch *regexp.Regexp
-	switch userArch {
-	case "arm64":
-		reArch, err = regexp.Compile(constants.RegexArm64)
-	case "amd64":
-		reArch, err = regexp.Compile(constants.RegexAmd64)
-	case "386":
-		reArch, err = regexp.Compile(constants.Regex386)
-	default:
-		reArch, err = regexp.Compile(`(?i)` + userArch)
-	}
-	if err != nil {
-		return "", err
-	}
-
-	for _, asset := range detectedOSAssets {
-		if reArch.MatchString(asset) {
-			detectedFinalAssets = append(detectedFinalAssets, asset)
-		}
-	}
-
-	var finalAsset string
-	if len(detectedFinalAssets) != 1 {
-		if userOS == "darwin" && userArch == "arm64" {
-			finalAsset, err = darwinARMFallback(detectedOSAssets)
-			if err != nil {
-				return "", err
-			}
-		} else if userOS == "linux" && len(detectedFinalAssets) > 1 {
-			// Apply gnu/musl preference for Linux when multiple assets match
-			finalAsset = linuxGnuMuslPreference(detectedFinalAssets)
-		}
-		if finalAsset == "" {
-			// Determine which assets to show in manual selection
-			var assetsForManualSelection []string
-			if len(detectedFinalAssets) > 1 {
-				// Multiple OS+arch matches, show only those
-				assetsForManualSelection = detectedFinalAssets
-			} else if len(detectedOSAssets) > 0 {
-				// OS matched but no arch match, show OS-matched assets
-				assetsForManualSelection = detectedOSAssets
-			} else {
-				// No matches at all, show checksum-filtered list
-				assetsForManualSelection = filteredReleaseAssets
-			}
-
-			finalAsset, err = WarningPromptSelect("Could not automatically detect the release asset matching your OS/Arch. Please select it manually:", assetsForManualSelection)
-			if err != nil {
-				return "", err
-			}
-		}
-	} else {
-		finalAsset = detectedFinalAssets[0]
-	}
-
-	return finalAsset, nil
-}
-
-func darwinARMFallback(darwinAssets []string) (string, error) {
-	reArch, err := regexp.Compile(constants.RegexAmd64)
-	if err != nil {
-		return "", err
-	}
-
-	var altAssets []string
-	for _, asset := range darwinAssets {
-		if reArch.MatchString(asset) {
-			altAssets = append(altAssets, asset)
-		}
-	}
-
-	if len(altAssets) != 1 {
-		return "", nil
-	}
-
-	return altAssets[0], nil
-}
-
-// linuxGnuMuslPreference applies gnu/musl preference for Linux assets
-// Returns the preferred asset or empty string if preference cannot be determined
-func linuxGnuMuslPreference(linuxAssets []string) string {
-	// Separate assets by type
-	var gnuAssets []string
-	var muslAssets []string
-	var unspecifiedAssets []string
-
-	for _, asset := range linuxAssets {
-		if reLinuxMusl.MatchString(asset) {
-			muslAssets = append(muslAssets, asset)
-		} else if reLinuxGnu.MatchString(asset) {
-			gnuAssets = append(gnuAssets, asset)
-		} else {
-			unspecifiedAssets = append(unspecifiedAssets, asset)
-		}
-	}
-
-	// Apply preference: gnu > unspecified (assumed gnu) > musl.
-	// If the preferred group does not contain exactly one asset, return empty for manual selection.
-	for _, group := range [][]string{gnuAssets, unspecifiedAssets, muslAssets} {
-		if len(group) == 1 {
-			return group[0]
-		}
-		if len(group) > 1 {
-			return ""
-		}
-	}
-
-	return ""
+	return WarningPromptSelect("Could not automatically detect the release asset matching your OS/Arch. Please select it manually:", assetsForManualSelection)
 }
 
 // GithubSearch contains information about the GitHub search including the GitHub search results

@@ -105,9 +105,13 @@ func upgradeOne(binaryName, userOS, userArch string, lockFile stew.LockFile, sys
 		return err
 	}
 
-	asset, err := stew.DetectAsset(userOS, userArch, releaseAssets, tag, showAllAssets)
-	if err != nil {
-		return err
+	// Prefer the asset that has the same name as the installed asset, to keep the selection of the user
+	asset, assetMatchesPrevious := stew.MatchPreviousAsset(pkg.Asset, pkg.Tag, tag, releaseAssets)
+	if !assetMatchesPrevious || showAllAssets {
+		asset, err = stew.DetectAsset(userOS, userArch, releaseAssets, tag, repo, showAllAssets)
+		if err != nil {
+			return err
+		}
 	}
 	assetIndex, _ := stew.Contains(releaseAssets, asset)
 	downloadURL := githubProject.Releases[tagIndex].Assets[assetIndex].DownloadURL
