@@ -10,15 +10,18 @@ import (
 	"strings"
 
 	"github.com/marwanhawari/stew/constants"
-	"github.com/mholt/archiver"
+	"github.com/mholt/archiver/v3"
 	progressbar "github.com/schollz/progressbar/v3"
 )
 
 // unarchiverByExtension returns the unarchiver for an archive file or nil if the file is not an archive
 func unarchiverByExtension(filePath string) archiver.Unarchiver {
-	// The archiver library does not recognize the .tbz short extension
+	// The archiver library does not recognize these short extensions
 	if strings.HasSuffix(filePath, ".tbz") {
 		return archiver.NewTarBz2()
+	}
+	if strings.HasSuffix(filePath, ".tzst") {
+		return archiver.NewTarZstd()
 	}
 	format, err := archiver.ByExtension(filePath)
 	if err != nil {
@@ -44,6 +47,10 @@ func decompressorByExtension(filePath string) archiver.Decompressor {
 		return archiver.NewLz4()
 	case ".sz":
 		return archiver.NewSnappy()
+	case ".zst":
+		return archiver.NewZstd()
+	case ".br":
+		return archiver.NewBrotli()
 	}
 	return nil
 }

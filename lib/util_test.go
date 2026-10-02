@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/mholt/archiver"
+	"github.com/mholt/archiver/v3"
 )
 
 func Test_isArchiveFile(t *testing.T) {
@@ -45,6 +45,34 @@ func Test_isArchiveFile(t *testing.T) {
 				filePath: "Archive.tbz",
 			},
 			want: true,
+		},
+		{
+			name: "tar.zst",
+			args: args{
+				filePath: "Archive.tar.zst",
+			},
+			want: true,
+		},
+		{
+			name: "tzst",
+			args: args{
+				filePath: "Archive.tzst",
+			},
+			want: true,
+		},
+		{
+			name: "tar.br",
+			args: args{
+				filePath: "Archive.tar.br",
+			},
+			want: true,
+		},
+		{
+			name: "single file zst",
+			args: args{
+				filePath: "binary.zst",
+			},
+			want: false,
 		},
 		{
 			name: "tbz2",
@@ -706,32 +734,48 @@ func Test_extractBinary(t *testing.T) {
 	}
 }
 
-func Test_extractBinary_tbz(t *testing.T) {
-	srcDir := t.TempDir()
-	binaryPath := filepath.Join(srcDir, "binary")
-	if err := os.WriteFile(binaryPath, []byte("contents"), 0755); err != nil {
-		t.Fatal(err)
+func Test_extractBinary_archive(t *testing.T) {
+	tests := []struct {
+		name string
+		// createdExtension is an extension that the archiver library can create
+		createdExtension string
+		// downloadedExtension is the extension of the release asset
+		downloadedExtension string
+	}{
+		{name: "tbz", createdExtension: ".tar.bz2", downloadedExtension: ".tbz"},
+		{name: "tar.zst", createdExtension: ".tar.zst", downloadedExtension: ".tar.zst"},
+		{name: "tzst", createdExtension: ".tar.zst", downloadedExtension: ".tzst"},
+		{name: "tar.br", createdExtension: ".tar.br", downloadedExtension: ".tar.br"},
 	}
-	archivePath := filepath.Join(srcDir, "archive.tar.bz2")
-	if err := archiver.Archive([]string{binaryPath}, archivePath); err != nil {
-		t.Fatal(err)
-	}
-	downloadedFilePath := filepath.Join(srcDir, "archive.tbz")
-	if err := os.Rename(archivePath, downloadedFilePath); err != nil {
-		t.Fatal(err)
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srcDir := t.TempDir()
+			binaryPath := filepath.Join(srcDir, "binary")
+			if err := os.WriteFile(binaryPath, []byte("contents"), 0755); err != nil {
+				t.Fatal(err)
+			}
+			archivePath := filepath.Join(srcDir, "archive"+tt.createdExtension)
+			if err := archiver.Archive([]string{binaryPath}, archivePath); err != nil {
+				t.Fatal(err)
+			}
+			downloadedFilePath := filepath.Join(srcDir, "download"+tt.downloadedExtension)
+			if err := os.Rename(archivePath, downloadedFilePath); err != nil {
+				t.Fatal(err)
+			}
 
-	tmpExtractionPath := filepath.Join(t.TempDir(), "tmp")
-	if err := extractBinary(downloadedFilePath, tmpExtractionPath, ""); err != nil {
-		t.Fatalf("extractBinary() error = %v", err)
-	}
+			tmpExtractionPath := filepath.Join(t.TempDir(), "tmp")
+			if err := extractBinary(downloadedFilePath, tmpExtractionPath, ""); err != nil {
+				t.Fatalf("extractBinary() error = %v", err)
+			}
 
-	got, err := os.ReadFile(filepath.Join(tmpExtractionPath, "binary"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(got) != "contents" {
-		t.Errorf("extractBinary() extracted %q, want %q", got, "contents")
+			got, err := os.ReadFile(filepath.Join(tmpExtractionPath, "binary"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(got) != "contents" {
+				t.Errorf("extractBinary() extracted %q, want %q", got, "contents")
+			}
+		})
 	}
 }
 
@@ -746,6 +790,8 @@ func Test_extractBinary_compressedFile(t *testing.T) {
 		{name: "xz", extension: ".xz", compressor: archiver.NewXz()},
 		{name: "lz4", extension: ".lz4", compressor: archiver.NewLz4()},
 		{name: "sz", extension: ".sz", compressor: archiver.NewSnappy()},
+		{name: "zst", extension: ".zst", compressor: archiver.NewZstd()},
+		{name: "br", extension: ".br", compressor: archiver.NewBrotli()},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
