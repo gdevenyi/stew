@@ -46,6 +46,9 @@ var RegexLinuxMusl = `(?i)(^|[-_.])musl`
 // RegexGithub is a regular express for valid GitHub repos
 var RegexGithub = `(?i)^[A-Za-z0-9\-]+\/[A-Za-z0-9\_\.\-]+(@.+)?$`
 
+// RegexGithubURL is a regular expression for URLs of a GitHub repo page or of one of its release pages. It does not match the URL of a release asset.
+var RegexGithubURL = `(?i)^(?:https?:\/\/)?(?:www\.)?github\.com\/([A-Za-z0-9\-]+)\/([A-Za-z0-9\_\.\-]+?)(?:\.git)?(?:\/releases(?:\/latest|\/tag\/([^\/?#]+))?)?\/?$`
+
 // RegexGithubSearch is a regular express for valid GitHub search queries
 var RegexGithubSearch = `(?i)^[A-Za-z0-9\_\.\-\/\:]+$`
 
