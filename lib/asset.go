@@ -50,20 +50,28 @@ var libcPatterns = []assetPattern{
 	{libcMsvc, regexp.MustCompile(`(^|[^a-z])msvc`), "-"},
 }
 
-// assetFormats gives the extensions that stew can install and their order of preference.
+// assetFormats gives the extensions that stew can install in the order of preference.
 // A binary that is not in an archive is preferred, because the full download is the binary.
+// Each archive extension has a different rank, thus a release with the same archive in two formats has one best asset.
 var assetFormats = []struct {
 	extension string
 	rank      int
 }{
-	{".tar.gz", 1}, {".tgz", 1},
-	{".tar.xz", 2}, {".txz", 2},
-	{".tar.bz2", 3}, {".tbz2", 3}, {".tbz", 3},
-	{".zip", 4},
-	{".tar.lz4", 5}, {".tar.sz", 5}, {".tar", 5}, {".rar", 5},
-	{".gz", 6}, {".xz", 6}, {".bz2", 6}, {".lz4", 6}, {".sz", 6},
-	{".exe", 0}, {".appimage", 0}, {".bin", 0},
+	{".exe", formatRankBinary}, {".appimage", formatRankBinary}, {".bin", formatRankBinary},
+	{".tar.gz", 2}, {".tgz", 3},
+	{".tar.xz", 4}, {".txz", 5},
+	{".tar.bz2", 6}, {".tbz2", 7}, {".tbz", 8},
+	{".zip", formatRankZip},
+	{".tar.lz4", 10}, {".tar.sz", 11}, {".tar", 12}, {".rar", 13},
+	{".gz", 14}, {".xz", 15}, {".bz2", 16}, {".lz4", 17}, {".sz", 18},
 }
+
+const (
+	formatRankBinary = 0
+	// formatRankWindowsZip is the rank of a zip archive on Windows, where it is the usual archive format
+	formatRankWindowsZip = 1
+	formatRankZip        = 9
+)
 
 var (
 	reMetadata          = regexp.MustCompile(constants.RegexMetadata)
@@ -188,9 +196,8 @@ func (info assetInfo) rank(userOS, repo string) assetRank {
 		rank.repoName = 0
 	}
 
-	// Zip is the usual archive format on Windows
-	if userOS == "windows" && info.formatRank == 4 {
-		rank.format = 1
+	if userOS == "windows" && info.formatRank == formatRankZip {
+		rank.format = formatRankWindowsZip
 	}
 
 	return rank
@@ -244,7 +251,7 @@ func rankAssets(userOS, userArch, repo string, assets []string) ([]string, []str
 		// Some releases contain one program for all operating systems, for example a script.
 		// Archives without an OS in the name are not accepted, because they usually contain source code or documentation.
 		candidates = filterAssetInfos(infos, func(info assetInfo) bool {
-			return len(info.oses) == 0 && len(info.archs) == 0 && info.formatRank == 0 && !info.unknownExtension
+			return len(info.oses) == 0 && len(info.archs) == 0 && info.formatRank == formatRankBinary && !info.unknownExtension
 		})
 		if len(candidates) == 0 {
 			return nil, assets
