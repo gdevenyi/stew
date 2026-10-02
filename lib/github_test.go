@@ -634,13 +634,13 @@ func TestDetectAsset(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "linux-multiple-gnu-assets-triggers-manual",
+			name: "linux-two-variants-triggers-manual",
 			args: args{
 				userOS:   "linux",
 				userArch: "amd64",
 				releaseAssets: []string{
-					"program-v1.0.0-linux-amd64-gnu.tar.gz",
-					"program-v1.0.0-linux-amd64-gnu-static.tar.gz",
+					"program-v1.0.0-linux-amd64-gnu-full.tar.gz",
+					"program-v1.0.0-linux-amd64-gnu-lite.tar.gz",
 				},
 			},
 			want:    "",
@@ -649,155 +649,13 @@ func TestDetectAsset(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := DetectAsset(tt.args.userOS, tt.args.userArch, tt.args.releaseAssets, "", false)
+			got, err := DetectAsset(tt.args.userOS, tt.args.userArch, tt.args.releaseAssets, "", "", false)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DetectAsset() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
 				t.Errorf("DetectAsset() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_darwinARMFallback(t *testing.T) {
-	type args struct {
-		darwinAssets []string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
-	}{
-		{
-			name: "test1",
-			args: args{
-				darwinAssets: testDarwinAssets,
-			},
-			want:    "ppath-v0.0.1-darwin-amd64.tar.gz",
-			wantErr: false,
-		},
-		{
-			name: "test2",
-			args: args{
-				darwinAssets: []string{},
-			},
-			want:    "",
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := darwinARMFallback(tt.args.darwinAssets)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("darwinARMFallback() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("darwinARMFallback() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_linuxGnuMuslPreference(t *testing.T) {
-	type args struct {
-		linuxAssets []string
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{
-			name: "single gnu asset",
-			args: args{
-				linuxAssets: []string{"program-linux-amd64-gnu.tar.gz"},
-			},
-			want: "program-linux-amd64-gnu.tar.gz",
-		},
-		{
-			name: "prefers gnu over musl",
-			args: args{
-				linuxAssets: []string{
-					"program-linux-amd64-gnu.tar.gz",
-					"program-linux-amd64-musl.tar.gz",
-				},
-			},
-			want: "program-linux-amd64-gnu.tar.gz",
-		},
-		{
-			name: "prefers unspecified over musl",
-			args: args{
-				linuxAssets: []string{
-					"program-linux-amd64-musl.tar.gz",
-					"program-linux-amd64.tar.gz",
-				},
-			},
-			want: "program-linux-amd64.tar.gz",
-		},
-		{
-			name: "unspecified when no gnu or musl",
-			args: args{
-				linuxAssets: []string{"program-linux-amd64.tar.gz"},
-			},
-			want: "program-linux-amd64.tar.gz",
-		},
-		{
-			name: "empty when multiple gnu",
-			args: args{
-				linuxAssets: []string{
-					"program-linux-amd64-gnu.tar.gz",
-					"program-linux-amd64-gnu-static.tar.gz",
-				},
-			},
-			want: "",
-		},
-		{
-			name: "empty when multiple musl",
-			args: args{
-				linuxAssets: []string{
-					"program-linux-amd64-musl.tar.gz",
-					"program-linux-amd64-musl-static.tar.gz",
-				},
-			},
-			want: "",
-		},
-		{
-			name: "gnu triple with abi suffix",
-			args: args{
-				linuxAssets: []string{
-					"program-arm-unknown-linux-gnueabihf.tar.gz",
-					"program-arm-unknown-linux-musleabi.tar.gz",
-				},
-			},
-			want: "program-arm-unknown-linux-gnueabihf.tar.gz",
-		},
-		{
-			name: "gnu and musl inside another word are ignored",
-			args: args{
-				linuxAssets: []string{
-					"magnum-linux-amd64-musl.tar.gz",
-					"magnum-linux-amd64.tar.gz",
-				},
-			},
-			want: "magnum-linux-amd64.tar.gz",
-		},
-		{
-			name: "empty when zero assets",
-			args: args{
-				linuxAssets: []string{},
-			},
-			want: "",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := linuxGnuMuslPreference(tt.args.linuxAssets)
-			if got != tt.want {
-				t.Errorf("linuxGnuMuslPreference() = %v, want %v", got, tt.want)
 			}
 		})
 	}
