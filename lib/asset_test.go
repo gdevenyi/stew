@@ -112,6 +112,22 @@ func Test_rankAssets(t *testing.T) {
 			want:     []string{"shellcheck-v0.11.0.linux.x86_64.tar.gz"},
 		},
 		{
+			name:     "same archive in two formats",
+			userOS:   "linux",
+			userArch: "amd64",
+			repo:     "micro",
+			assets:   []string{"micro-2.0.14-linux64.tgz", "micro-2.0.14-linux64.tar.gz", "micro-2.0.14-linux64-static.tgz", "micro-2.0.14-linux-arm64.tar.gz"},
+			want:     []string{"micro-2.0.14-linux64.tar.gz"},
+		},
+		{
+			name:     "zip is preferred to tar.gz on windows but not to exe",
+			userOS:   "windows",
+			userArch: "amd64",
+			repo:     "tool",
+			assets:   []string{"tool_windows_amd64.tar.gz", "tool_windows_amd64.zip", "tool_linux_amd64.tar.gz"},
+			want:     []string{"tool_windows_amd64.zip"},
+		},
+		{
 			name:     "program with the shortest name",
 			userOS:   "linux",
 			userArch: "amd64",
