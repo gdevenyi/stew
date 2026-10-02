@@ -95,6 +95,7 @@ Compiled binaries can be downloaded from the [releases page](https://github.com/
 stew install junegunn/fzf              # Install the latest release
 stew install junegunn/fzf@0.27.1       # Install a specific, tagged version
 stew install --show-all-assets junegunn/fzf   # Select the release asset manually
+stew install https://github.com/junegunn/fzf   # The URL of the repo page also works
 
 # Install directly from a URL
 stew install https://github.com/cli/cli/releases/download/v2.4.0/gh_2.4.0_macOS_amd64.tar.gz
