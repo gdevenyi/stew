@@ -732,7 +732,7 @@ func TestDetectAsset_Windows(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := DetectAsset("windows", "amd64", tt.releaseAssets)
+			got, err := DetectAsset("windows", "amd64", tt.releaseAssets, "", false)
 			if err != nil {
 				t.Errorf("DetectAsset() error = %v", err)
 				return
