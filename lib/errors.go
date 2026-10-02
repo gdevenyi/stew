@@ -105,6 +105,14 @@ func (e CLIFlagAndInputError) Error() string {
 	return fmt.Sprintf("%v Cannot use the --all flag with a positional argument", constants.RedColor("Error:"))
 }
 
+// ShowAllAssetsWithAllFlagError occurs if you try to use the --show-all-assets flag with the --all flag at the same time
+type ShowAllAssetsWithAllFlagError struct {
+}
+
+func (e ShowAllAssetsWithAllFlagError) Error() string {
+	return fmt.Sprintf("%v Cannot use the --show-all-assets flag with the --all flag", constants.RedColor("Error:"))
+}
+
 // AbortBinaryOverwriteError occurs if the overwrite of a binary is aborted
 type AbortBinaryOverwriteError struct {
 	Binary string

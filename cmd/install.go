@@ -106,7 +106,7 @@ func installOne(pkg stew.PackageData, userOS, userArch string, systemInfo stew.S
 		}
 
 		if asset == "" {
-			asset, err = stew.DetectAsset(userOS, userArch, releaseAssets, showAllAssets)
+			asset, err = stew.DetectAsset(userOS, userArch, releaseAssets, tag, showAllAssets)
 		}
 		if err != nil {
 			return err
