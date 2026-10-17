@@ -1,0 +1,70 @@
+# Publishes a release of the gdevenyi fork for each push to the gdevenyi branch.
+# Install with `stew install gdevenyi/stew`, then `stew upgrade stew` upgrades it.
+name: fork release
+
+on:
+  push:
+    branches:
+      - gdevenyi
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fork-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.repository == 'gdevenyi/stew'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Test
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # The GitHub search tests compare with live star counts, so they are skipped here
+        run: |
+          go vet ./...
+          go test ./... -skip 'GithubSearch'
+
+      - name: Build
+        run: |
+          base=$(sed -n 's/^var version = "\(.*\)"$/\1/p' main.go)
+          tag="${base}-gdevenyi.${GITHUB_RUN_NUMBER}"
+          echo "TAG=${tag}" >> "$GITHUB_ENV"
+          mkdir dist
+          for target in linux/amd64 linux/arm64 linux/386 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64 windows/386; do
+            os=${target%/*}
+            arch=${target#*/}
+            name="stew-${os}-${arch}"
+            binary=stew
+            [ "$os" = windows ] && binary=stew.exe
+            mkdir -p "build/${name}"
+            CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath \
+              -ldflags "-s -w -X main.version=${tag}" -o "build/${name}/${binary}" .
+            if [ "$os" = windows ]; then
+              (cd "build/${name}" && zip -q "../../dist/${name}.zip" "${binary}")
+            else
+              tar -C "build/${name}" -czf "dist/${name}.tar.gz" "${binary}"
+            fi
+          done
+          (cd dist && sha256sum * > checksums.txt)
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$TAG" dist/* \
+            --target "$GITHUB_SHA" \
+            --title "$TAG" \
+            --notes "Build of the gdevenyi branch at ${GITHUB_SHA}. Install with \`stew install gdevenyi/stew\`." \
+            --latest

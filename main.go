@@ -8,11 +8,14 @@ import (
 	"github.com/urfave/cli"
 )
 
+// version is set at build time with -ldflags "-X main.version=..."
+var version = "v0.6.0"
+
 func main() {
 
 	app := &cli.App{
 		Name:    "stew",
-		Version: "v0.6.0",
+		Version: version,
 		Commands: []cli.Command{
 			{
 				Name:    "install",
