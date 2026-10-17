@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/marwanhawari/stew/cmd"
+	stew "github.com/marwanhawari/stew/lib"
 	"github.com/urfave/cli"
 )
 
@@ -26,8 +27,13 @@ func main() {
 						Name:  "show-all-assets",
 						Usage: "Choose from all portable assets (checksums and package installers are hidden) instead of auto-detecting based on OS/Arch",
 					},
+					&cli.BoolFlag{
+						Name:  "yes, y",
+						Usage: "Do not ask the user: overwrite installed binaries, keep binary names, and fail when a tag, asset, or binary must be selected",
+					},
 				},
 				Action: func(c *cli.Context) error {
+					stew.NonInteractive = c.Bool("yes")
 					cmd.Install(c.Bool("show-all-assets"), c.Args().First())
 					return nil
 				},
@@ -69,8 +75,13 @@ func main() {
 						Name:  "show-all-assets",
 						Usage: "Choose from all portable assets (checksums and package installers are hidden) instead of auto-detecting based on OS/Arch. Cannot be used with --all",
 					},
+					&cli.BoolFlag{
+						Name:  "yes, y",
+						Usage: "Do not ask the user: overwrite installed binaries, keep binary names, and fail when a tag, asset, or binary must be selected",
+					},
 				},
 				Action: func(c *cli.Context) error {
+					stew.NonInteractive = c.Bool("yes")
 					cmd.Upgrade(c.Bool("all"), c.Bool("show-all-assets"), c.Args().First())
 					return nil
 				},
