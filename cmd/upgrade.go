@@ -156,6 +156,11 @@ func upgradeAll(userOS, userArch string, lockFile stew.LockFile, systemInfo stew
 			continue
 		}
 		if err := upgradeOne(pkg.Binary, userOS, userArch, lockFile, systemInfo, false); err != nil {
+			// All the remaining packages will also fail, so stop
+			var rateLimitErr stew.GithubRateLimitError
+			if errors.As(err, &rateLimitErr) {
+				stew.CatchAndExit(err)
+			}
 			fmt.Fprintln(os.Stderr, err)
 			continue
 		}

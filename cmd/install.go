@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -226,6 +227,11 @@ func installAll(pkgs []stew.PackageData, userOS, userArch string, systemInfo ste
 		err := installOne(pkg, userOS, userArch, systemInfo, installingFromLockFile, false)
 		if err == nil {
 			continue
+		}
+		// All the remaining packages will also fail, so stop
+		var rateLimitErr stew.GithubRateLimitError
+		if errors.As(err, &rateLimitErr) {
+			return err
 		}
 		fmt.Fprintln(os.Stderr, err)
 		// The user chose not to overwrite the binary, thus this is not a failure

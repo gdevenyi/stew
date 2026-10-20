@@ -3,6 +3,7 @@ package stew
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/marwanhawari/stew/constants"
 )
@@ -14,6 +15,23 @@ type NonZeroStatusCodeError struct {
 
 func (e NonZeroStatusCodeError) Error() string {
 	return fmt.Sprintf("%v Received non-zero status code from HTTP request: %v", constants.RedColor("Error:"), constants.RedColor(e.StatusCode))
+}
+
+// GithubRateLimitError occurs if GitHub refuses a request because the API rate limit is used up
+type GithubRateLimitError struct {
+	Reset    time.Time
+	HasToken bool
+}
+
+func (e GithubRateLimitError) Error() string {
+	message := fmt.Sprintf("%v The GitHub API rate limit is used up", constants.RedColor("Error:"))
+	if !e.Reset.IsZero() {
+		message += fmt.Sprintf(". It resets at %v", constants.RedColor(e.Reset.Format("15:04:05")))
+	}
+	if !e.HasToken {
+		message += ". Set the GITHUB_TOKEN environment variable to get a higher rate limit"
+	}
+	return message
 }
 
 // ReleasesNotFoundError occurs if no releases are found for a GitHub repo
